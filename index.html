@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ledgerly — Personal Expense Tracker</title>
+  <meta name="description" content="A clean, minimalist personal finance and expense tracking web application built with HTML5, CSS3, and Vanilla JavaScript." />
+  <meta property="og:title" content="Ledgerly — Personal Expense Tracker" />
+  <meta property="og:description" content="Track income, expenses, monthly budgets, and spending analytics in a clean financial workspace." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="./assets/logo.svg" />
+
+  <!-- Typography: Plus Jakarta Sans & IBM Plex Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- Chart.js & Lucide Icons via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar" aria-label="Primary Navigation">
+      <div class="sidebar-header">
+        <a href="#dashboard" class="brand-link" data-nav="dashboard">
+          <img src="./assets/logo.svg" alt="Ledgerly logo" class="brand-mark" width="28" height="28" />
+          <span class="brand-name">Ledgerly</span>
+        </a>
+        <button id="sidebar-close-btn" class="icon-btn mobile-only" type="button" aria-label="Close navigation menu">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button type="button" class="nav-item active" data-view="dashboard" aria-current="page">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+        <button type="button" class="nav-item" data-view="transactions">
+          <i data-lucide="arrow-left-right"></i>
+          <span>Transactions</span>
+        </button>
+        <button type="button" class="nav-item" data-view="analytics">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Analytics</span>
+        </button>
+        <button type="button" class="nav-item" data-view="budget">
+          <i data-lucide="target"></i>
+          <span>Budget</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-group">
+          <button type="button" id="export-csv-btn" class="sidebar-utility-btn">
+            <i data-lucide="download"></i>
+            <span>Export CSV</span>
+          </button>
+          <button type="button" id="reset-demo-btn" class="sidebar-utility-btn">
+            <i data-lucide="rotate-ccw"></i>
+            <span>Reset Sample Data</span>
+          </button>
+          <button type="button" id="clear-data-btn" class="sidebar-utility-btn danger-text">
+            <i data-lucide="trash-2"></i>
+            <span>Clear All Data</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <!-- Top Navigation Bar (Strict 3-Zone Contract) -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="mobile-menu-btn" class="icon-btn mobile-only" type="button" aria-label="Open navigation menu" aria-expanded="false" aria-controls="sidebar">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="breadcrumb" aria-label="Current location">
+            <span class="breadcrumb-root">Workspace</span>
+            <span class="breadcrumb-sep" aria-hidden="true">/</span>
+            <h1 id="topbar-title" class="breadcrumb-current">Dashboard</h1>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <button id="open-add-modal-btn" class="btn btn-primary" type="button">
+            <i data-lucide="plus"></i>
+            <span>Add Transaction</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Viewport -->
+      <main class="main-content" id="main-content">
+        <!-- VIEW 1: DASHBOARD -->
+        <section id="view-dashboard" class="view-section active" aria-labelledby="topbar-title">
+          <div id="dashboard-budget-alert" class="alert-banner hidden" role="status" aria-live="polite"></div>
+
+          <!-- Summary KPI Cards -->
+          <div class="kpi-grid">
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Total Balance</span>
+                <span class="kpi-icon neutral"><i data-lucide="wallet"></i></span>
+              </div>
+              <div id="dash-total-balance" class="kpi-value tabular-nums">$0.00</div>
+              <div id="dash-balance-meta" class="kpi-meta">Net across all recorded entries</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Total Income</span>
+                <span class="kpi-icon positive"><i data-lucide="trending-up"></i></span>
+              </div>
+              <div id="dash-total-income" class="kpi-value tabular-nums positive-text">$0.00</div>
+              <div id="dash-income-meta" class="kpi-meta">0 income entries</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Total Expenses</span>
+                <span class="kpi-icon negative"><i data-lucide="trending-down"></i></span>
+              </div>
+              <div id="dash-total-expenses" class="kpi-value tabular-nums">$0.00</div>
+              <div id="dash-expenses-meta" class="kpi-meta">0 expense entries</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Monthly Spending</span>
+                <span class="kpi-icon accent"><i data-lucide="calendar"></i></span>
+              </div>
+              <div id="dash-monthly-spending" class="kpi-value tabular-nums">$0.00</div>
+              <div id="dash-monthly-meta" class="kpi-meta">Current month</div>
+            </article>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="dashboard-charts-grid">
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Monthly Spending Overview</h2>
+                  <p class="card-subtitle">Expense trend across the last 6 months</p>
+                </div>
+              </div>
+              <div class="chart-container chart-container-md">
+                <canvas id="dash-monthly-chart" aria-label="Monthly spending overview chart"></canvas>
+                <div id="dash-monthly-empty" class="chart-empty hidden">
+                  <p>No expense data available to display monthly trends.</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Expense Category Breakdown</h2>
+                  <p class="card-subtitle">Share of total spending by category</p>
+                </div>
+              </div>
+              <div class="category-split">
+                <div class="chart-container chart-container-sm">
+                  <canvas id="dash-category-chart" aria-label="Expense category breakdown chart"></canvas>
+                  <div id="dash-category-empty" class="chart-empty hidden">
+                    <p>Add expenses to see category distribution.</p>
+                  </div>
+                </div>
+                <ul id="dash-category-list" class="category-legend-list"></ul>
+              </div>
+            </article>
+          </div>
+
+          <!-- Recent Transactions -->
+          <article class="card table-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Recent Transactions</h2>
+                <p class="card-subtitle">Latest recorded income and expenses</p>
+              </div>
+              <button type="button" id="view-all-transactions-btn" class="btn btn-ghost">
+                <span>View all</span>
+                <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+            <div id="dash-recent-container"></div>
+          </article>
+        </section>
+
+        <!-- VIEW 2: TRANSACTION HISTORY -->
+        <section id="view-transactions" class="view-section" aria-label="Transaction History">
+          <article class="card toolbar-card">
+            <div class="filters-toolbar">
+              <div class="search-field">
+                <i data-lucide="search"></i>
+                <input
+                  type="search"
+                  id="tx-search-input"
+                  placeholder="Search by title, category, or description..."
+                  aria-label="Search transactions"
+                />
+              </div>
+
+              <div class="filter-controls">
+                <div class="segmented-control" role="group" aria-label="Filter by transaction type">
+                  <button type="button" class="segment-btn active" data-type-filter="all">All</button>
+                  <button type="button" class="segment-btn" data-type-filter="income">Income</button>
+                  <button type="button" class="segment-btn" data-type-filter="expense">Expense</button>
+                </div>
+
+                <select id="tx-category-filter" class="select-input" aria-label="Filter by category">
+                  <option value="all">All Categories</option>
+                </select>
+
+                <select id="tx-sort-select" class="select-input" aria-label="Sort transactions">
+                  <option value="date-desc">Date: Newest First</option>
+                  <option value="date-asc">Date: Oldest First</option>
+                  <option value="amount-desc">Amount: High to Low</option>
+                  <option value="amount-asc">Amount: Low to High</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="filter-summary-bar">
+              <div id="tx-results-summary" class="results-summary">Showing 0 transactions</div>
+              <div id="tx-filtered-totals" class="filtered-totals tabular-nums"></div>
+            </div>
+          </article>
+
+          <article class="card table-card">
+            <div id="tx-table-container"></div>
+          </article>
+        </section>
+
+        <!-- VIEW 3: EXPENSE ANALYTICS -->
+        <section id="view-analytics" class="view-section" aria-label="Expense Analytics">
+          <div class="section-toolbar">
+            <div>
+              <h2 class="section-heading">Financial Performance</h2>
+              <p class="section-subheading">Cash flow comparisons, category concentration, and net savings</p>
+            </div>
+            <div class="segmented-control" role="group" aria-label="Analytics timeframe">
+              <button type="button" class="segment-btn active" data-analytics-period="all">All Time</button>
+              <button type="button" class="segment-btn" data-analytics-period="6m">Last 6 Months</button>
+              <button type="button" class="segment-btn" data-analytics-period="month">This Month</button>
+            </div>
+          </div>
+
+          <div class="kpi-grid">
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Total Savings</span>
+                <span class="kpi-icon positive"><i data-lucide="piggy-bank"></i></span>
+              </div>
+              <div id="analytics-total-savings" class="kpi-value tabular-nums">$0.00</div>
+              <div id="analytics-savings-rate" class="kpi-meta">0.0% savings rate</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Highest Spending Category</span>
+                <span class="kpi-icon negative"><i data-lucide="flame"></i></span>
+              </div>
+              <div id="analytics-top-category" class="kpi-value">—</div>
+              <div id="analytics-top-category-meta" class="kpi-meta">No expense data</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Average Expense</span>
+                <span class="kpi-icon neutral"><i data-lucide="receipt"></i></span>
+              </div>
+              <div id="analytics-avg-expense" class="kpi-value tabular-nums">$0.00</div>
+              <div id="analytics-tx-count" class="kpi-meta">0 total transactions</div>
+            </article>
+
+            <article class="card kpi-card">
+              <div class="kpi-header">
+                <span class="kpi-label">Avg. Monthly Spend</span>
+                <span class="kpi-icon accent"><i data-lucide="activity"></i></span>
+              </div>
+              <div id="analytics-monthly-avg" class="kpi-value tabular-nums">$0.00</div>
+              <div id="analytics-active-months" class="kpi-meta">Across 0 active months</div>
+            </article>
+          </div>
+
+          <article class="card chart-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Monthly Income vs. Expenses</h2>
+                <p class="card-subtitle">Side-by-side cash flow comparison by month</p>
+              </div>
+            </div>
+            <div class="chart-container chart-container-lg">
+              <canvas id="analytics-income-expense-chart" aria-label="Monthly income versus expenses chart"></canvas>
+              <div id="analytics-ie-empty" class="chart-empty hidden">
+                <p>No transactions found for the selected timeframe.</p>
+              </div>
+            </div>
+          </article>
+
+          <div class="analytics-bottom-grid">
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Category-wise Expense Breakdown</h2>
+                  <p class="card-subtitle">Total expenditure per category ranked highest to lowest</p>
+                </div>
+              </div>
+              <div class="chart-container chart-container-md">
+                <canvas id="analytics-category-bar-chart" aria-label="Category expense breakdown chart"></canvas>
+                <div id="analytics-bar-empty" class="chart-empty hidden">
+                  <p>No expense records in this timeframe.</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Spending Distribution</h2>
+                  <p class="card-subtitle">Proportional allocation across expense categories</p>
+                </div>
+              </div>
+              <div class="distribution-split">
+                <div class="chart-container chart-container-sm">
+                  <canvas id="analytics-distribution-chart" aria-label="Spending distribution chart"></canvas>
+                  <div id="analytics-dist-empty" class="chart-empty hidden">
+                    <p>No expense records to distribute.</p>
+                  </div>
+                </div>
+                <div id="analytics-distribution-table" class="distribution-list"></div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- VIEW 4: BUDGET MANAGEMENT -->
+        <section id="view-budget" class="view-section" aria-label="Budget Management">
+          <div id="budget-status-banner" class="alert-banner hidden" role="status" aria-live="polite"></div>
+
+          <div class="budget-layout-grid">
+            <!-- Budget Configuration Form -->
+            <article class="card form-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Monthly Budget Target</h2>
+                  <p class="card-subtitle">Set a spending limit to monitor monthly discipline</p>
+                </div>
+              </div>
+
+              <form id="budget-form" class="stacked-form" novalidate>
+                <div class="form-group">
+                  <label for="budget-month-input" class="form-label">Target Month</label>
+                  <input type="month" id="budget-month-input" class="form-input tabular-nums" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="budget-amount-input" class="form-label">Monthly Limit (USD)</label>
+                  <div class="input-with-prefix">
+                    <span class="input-prefix">$</span>
+                    <input
+                      type="number"
+                      id="budget-amount-input"
+                      class="form-input tabular-nums"
+                      placeholder="3000.00"
+                      min="1"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                  <p id="budget-amount-error" class="field-error" role="alert"></p>
+                </div>
+
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save Budget</button>
+                  <button type="button" id="budget-remove-btn" class="btn btn-secondary hidden">Remove Limit</button>
+                </div>
+              </form>
+            </article>
+
+            <!-- Budget Tracking Progress -->
+            <article class="card budget-progress-card">
+              <div class="card-header">
+                <div>
+                  <h2 id="budget-progress-title" class="card-title">Budget Utilization</h2>
+                  <p id="budget-progress-subtitle" class="card-subtitle">Spending tracked against monthly limit</p>
+                </div>
+                <span id="budget-status-label" class="status-text">Not Configured</span>
+              </div>
+
+              <div class="budget-metrics-row">
+                <div class="budget-metric">
+                  <span class="budget-metric-label">Monthly Budget</span>
+                  <span id="budget-limit-display" class="budget-metric-value tabular-nums">$0.00</span>
+                </div>
+                <div class="budget-metric">
+                  <span class="budget-metric-label">Monthly Expenses</span>
+                  <span id="budget-spent-display" class="budget-metric-value tabular-nums">$0.00</span>
+                </div>
+                <div class="budget-metric">
+                  <span id="budget-remaining-label" class="budget-metric-label">Remaining Budget</span>
+                  <span id="budget-remaining-display" class="budget-metric-value tabular-nums">$0.00</span>
+                </div>
+                <div class="budget-metric">
+                  <span class="budget-metric-label">Utilization</span>
+                  <span id="budget-utilization-display" class="budget-metric-value tabular-nums">0.0%</span>
+                </div>
+              </div>
+
+              <div class="progress-wrapper">
+                <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="budget-progress-bar-track">
+                  <div id="budget-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-scale tabular-nums">
+                  <span>0%</span>
+                  <span>80% Warning Threshold</span>
+                  <span>100% Limit</span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="card table-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Category Consumption for Selected Month</h2>
+                <p id="budget-category-subtitle" class="card-subtitle">Expenses contributing to this month's budget</p>
+              </div>
+            </div>
+            <div id="budget-category-table"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT TRANSACTION MODAL -->
+  <div id="transaction-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tx-modal-title">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 id="tx-modal-title" class="modal-title">Add Transaction</h2>
+        <button type="button" id="close-tx-modal-btn" class="icon-btn" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="transaction-form" class="stacked-form" novalidate>
+        <input type="hidden" id="tx-id-input" />
+
+        <div class="form-group">
+          <span class="form-label">Transaction Type</span>
+          <div class="segmented-control full-width" role="group" aria-label="Transaction type">
+            <button type="button" class="segment-btn active" data-form-type="expense">Expense</button>
+            <button type="button" class="segment-btn" data-form-type="income">Income</button>
+          </div>
+          <input type="hidden" id="tx-type-input" value="expense" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="tx-title-input" class="form-label">Title <span class="required-mark">*</span></label>
+            <input
+              type="text"
+              id="tx-title-input"
+              class="form-input"
+              placeholder="e.g., Grocery Shopping"
+              maxlength="80"
+              required
+            />
+            <p id="tx-title-error" class="field-error" role="alert"></p>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-amount-input" class="form-label">Amount (USD) <span class="required-mark">*</span></label>
+            <div class="input-with-prefix">
+              <span class="input-prefix">$</span>
+              <input
+                type="number"
+                id="tx-amount-input"
+                class="form-input tabular-nums"
+                placeholder="0.00"
+                min="0.01"
+                step="0.01"
+                required
+              />
+            </div>
+            <p id="tx-amount-error" class="field-error" role="alert"></p>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="tx-category-input" class="form-label">Category <span class="required-mark">*</span></label>
+            <select id="tx-category-input" class="form-input" required></select>
+            <p id="tx-category-error" class="field-error" role="alert"></p>
+          </div>
+
+          <div class="form-group">
+            <label for="tx-date-input" class="form-label">Date <span class="required-mark">*</span></label>
+            <input type="date" id="tx-date-input" class="form-input tabular-nums" required />
+            <p id="tx-date-error" class="field-error" role="alert"></p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tx-description-input" class="form-label">Description</label>
+          <textarea
+            id="tx-description-input"
+            class="form-input form-textarea"
+            rows="2"
+            maxlength="240"
+            placeholder="Optional notes (e.g., Weekly groceries)"
+          ></textarea>
+          <p id="tx-description-error" class="field-error" role="alert"></p>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancel-tx-modal-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="submit-tx-btn" class="btn btn-primary">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div id="confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-panel modal-panel-sm">
+      <div class="modal-header">
+        <h2 id="confirm-modal-title" class="modal-title">Confirm Action</h2>
+        <button type="button" id="close-confirm-modal-btn" class="icon-btn" aria-label="Close confirmation">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <p id="confirm-modal-message" class="confirm-message"></p>
+      <div class="modal-footer">
+        <button type="button" id="cancel-confirm-btn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="accept-confirm-btn" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION REGION -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Application Entry Point -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
